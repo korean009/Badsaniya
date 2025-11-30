@@ -20,7 +20,7 @@ from SONALI.utils.database import (
 from SONALI.utils import bot_sys_stats
 from SONALI.utils.decorators.language import LanguageStart
 from SONALI.utils.formatters import get_readable_time
-from SONALI.utils.inline import help_pannel_page1, private_panel, start_panel
+from SONALI.utils.inline import help_pannel, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 
@@ -66,7 +66,7 @@ async def start_pm(client, message: Message, _):
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
-            keyboard = help_pannel_page1(_)
+            keyboard = help_pannel(_)
             user_photo = await get_user_photo(message.from_user.id, message.from_user.first_name)
             return await message.reply_photo(
                 photo=user_photo,
@@ -205,4 +205,5 @@ async def welcome(client, message: Message):
                 await message.stop_propagation()
         except Exception as ex:
             print(ex)
+
 
