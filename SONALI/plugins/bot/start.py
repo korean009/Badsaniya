@@ -1,10 +1,10 @@
 import time
 import random
+
 from pyrogram import filters
 from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
-from youtubesearchpython.__future__ import VideosSearch
-
+from py_yt import VideosSearch
 import config
 from SONALI import app
 from SONALI.misc import _boot_
@@ -17,40 +17,69 @@ from SONALI.utils.database import (
     is_banned_user,
     is_on_off,
 )
+from SONALI.utils import bot_sys_stats
 from SONALI.utils.decorators.language import LanguageStart
 from SONALI.utils.formatters import get_readable_time
-from SONALI.utils.inline import help_pannel, private_panel, start_panel
+from SONALI.utils.inline import help_pannel_page1, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 
-EFFECT_ID = [
-5046509860389126442,
-5107584321108051014,
-5104841245755180586,
-5159385139981059251,
+# Random stickers list
+RANDOM_STICKERS = [
+    "CAACAgUAAxkBAAJopGksNaBuvDedrZAw5x2-sqsgaNDRAAKRFAAC-M5xVsNnXZlf7iuTHgQ",
+    "CAACAgUAAxkBAAJopWksNaLznF5csIyyCqscgORT8QEiAALOEwACWK1oVr2804qgwq6THgQ",
+    "CAACAgUAAxkBAAJopmksNaRX7i1uFI_nqeNWV0FQJpoIAAIhFwACnKdpVtHO3KPB3zfmHgQ",
+    "CAACAgUAAxkBAAJopmksNaRX7i1uFI_nqeNWV0FQJpoIAAIhFwACnKdpVtHO3KPB3zfmHgQ", 
+    "CAACAgUAAxkBAAJop2ksNahIXDASmfDz9MwHuoJwMU7rAALCEwACu1ZoVqbROqz6YUT-HgQ", 
+    "CAACAgUAAxkBAAJoqGksNawBk5FNLG-sjqDo1Iz3vaLiAALtFAACQ19oVuU_5Q7hbeiSHgQ"
 ]
+
+EFFECT_ID = [
+    5046509860389126442,
+    5107584321108051014,
+    5104841245755180586,
+    5159385139981059251,
+]
+
+async def get_user_photo(user_id, user_first_name=None):
+    try:
+        user_photos = []
+        async for photo in app.get_chat_photos(user_id, limit=1):
+            user_photos.append(photo)
+        if user_photos:
+            return user_photos[0].file_id
+        else:
+            return config.START_IMG_URL
+    except Exception as e:
+        print(f"Error getting user photo for {user_id}: {e}")
+        return config.START_IMG_URL
 
 
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
 async def start_pm(client, message: Message, _):
+    # Send random sticker first
+    random_sticker = random.choice(RANDOM_STICKERS)
+    await message.reply_sticker(sticker=random_sticker)
+    
     await add_served_user(message.from_user.id)
-    await message.react("🍓")
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
-            keyboard = help_pannel(_)
+            keyboard = help_pannel_page1(_)
+            user_photo = await get_user_photo(message.from_user.id, message.from_user.first_name)
             return await message.reply_photo(
-                photo=config.START_IMG_URL,
+                photo=user_photo,
+                caption=_["help_1"].format(config.SUPPORT_GROUP),
                 has_spoiler=True,
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
+                message_effect_id=random.choice(EFFECT_ID),
                 reply_markup=keyboard,
             )
         if name[0:3] == "sud":
             await sudoers_list(client=client, message=message, _=_)
             if await is_on_off(2):
                 return await app.send_message(
-                    chat_id=config.LOGGER_ID,
+                    chat_id=config.LOG_GROUP_ID,
                     text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>sᴜᴅᴏʟɪsᴛ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
                 )
             return
@@ -75,7 +104,7 @@ async def start_pm(client, message: Message, _):
                 [
                     [
                         InlineKeyboardButton(text=_["S_B_8"], url=link),
-                        InlineKeyboardButton(text=_["S_B_9"], url=config.SUPPORT_CHAT),
+                        InlineKeyboardButton(text=_["S_B_9"], url=config.SUPPORT_GROUP),
                     ],
                 ]
             )
@@ -83,27 +112,29 @@ async def start_pm(client, message: Message, _):
             await app.send_photo(
                 chat_id=message.chat.id,
                 photo=thumbnail,
-                has_spoiler=True,
                 caption=searched_text,
+                has_spoiler=True,
                 reply_markup=key,
             )
             if await is_on_off(2):
                 return await app.send_message(
-                    chat_id=config.LOGGER_ID,
+                    chat_id=config.LOG_GROUP_ID,
                     text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ ᴛᴏ ᴄʜᴇᴄᴋ <b>ᴛʀᴀᴄᴋ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
                 )
     else:
         out = private_panel(_)
+        UP, CPU, RAM, DISK = await bot_sys_stats()
+        user_photo = await get_user_photo(message.from_user.id, message.from_user.first_name)
         await message.reply_photo(
-            photo=config.START_IMG_URL,
+            photo=user_photo,
+            caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
             has_spoiler=True,
             message_effect_id=random.choice(EFFECT_ID),
-            caption=_["start_2"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
         )
         if await is_on_off(2):
             return await app.send_message(
-                chat_id=config.LOGGER_ID,
+                chat_id=config.LOG_GROUP_ID,
                 text=f"{message.from_user.mention} ᴊᴜsᴛ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ʙᴏᴛ.\n\n<b>ᴜsᴇʀ ɪᴅ :</b> <code>{message.from_user.id}</code>\n<b>ᴜsᴇʀɴᴀᴍᴇ :</b> @{message.from_user.username}",
             )
 
@@ -111,12 +142,17 @@ async def start_pm(client, message: Message, _):
 @app.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
 @LanguageStart
 async def start_gp(client, message: Message, _):
+    # Send random sticker first
+    random_sticker = random.choice(RANDOM_STICKERS)
+    await message.reply_sticker(sticker=random_sticker)
+    
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
+    user_photo = await get_user_photo(message.from_user.id, message.from_user.first_name)
     await message.reply_photo(
-        photo=config.START_IMG_URL,
-        has_spoiler=True,
+        photo=user_photo,
         caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+        has_spoiler=True,
         reply_markup=InlineKeyboardMarkup(out),
     )
     return await add_served_chat(message.chat.id)
@@ -142,25 +178,31 @@ async def welcome(client, message: Message):
                         _["start_5"].format(
                             app.mention,
                             f"https://t.me/{app.username}?start=sudolist",
-                            config.SUPPORT_CHAT,
+                            config.SUPPORT_GROUP,
                         ),
                         disable_web_page_preview=True,
                     )
                     return await app.leave_chat(message.chat.id)
 
+                # Send random sticker first when bot joins group
+                random_sticker = random.choice(RANDOM_STICKERS)
+                await message.reply_sticker(sticker=random_sticker)
+
                 out = start_panel(_)
+                user_photo = await get_user_photo(message.from_user.id, message.from_user.first_name)
                 await message.reply_photo(
-                    photo=config.START_IMG_URL,
-                    has_spoiler=True,
+                    photo=user_photo,
                     caption=_["start_3"].format(
                         message.from_user.first_name,
                         app.mention,
                         message.chat.title,
                         app.mention,
                     ),
+                    has_spoiler=True,
                     reply_markup=InlineKeyboardMarkup(out),
                 )
                 await add_served_chat(message.chat.id)
                 await message.stop_propagation()
         except Exception as ex:
             print(ex)
+
